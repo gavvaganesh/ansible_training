@@ -1,0 +1,55 @@
+---
+- name: Power off a Redfish-managed system and verify
+  hosts: redfish
+  connection: local
+  gather_facts: false
+
+  collections:
+    - community.general
+
+  tasks:
+    - name: Create session
+      community.general.redfish_command:
+        category: Sessions
+        command: CreateSession
+        baseuri: "{{ baseuri }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+      register: result
+
+    - name: Show results of the session
+      debug:
+        var: result
+
+    - name: Pause to reflect on session and token information
+      pause:
+
+    - name: Get Redfish info using token
+      community.general.redfish_info:
+        auth_token: "{{ result.session.token }}"
+        baseuri: "{{ baseuri }}"
+      register: results
+
+    - name: Show Redfish info gathered
+      debug:
+        var: results
+
+    - name: Send shutdown command to Redfish system
+      community.general.redfish_command:
+        category: Systems
+        command: PowerForceOff
+        baseuri: "{{ baseuri }}"
+        auth_token: "{{ result.session.token }}"
+      register: shutdown_result
+
+    - name: Show command result
+      debug:
+        var: shutdown_result
+
+    - name: Delete the session
+      community.general.redfish_command:
+        category: Sessions
+        command: DeleteSession
+        baseuri: "{{ baseuri }}"
+        auth_token: "{{ result.session.token }}"
+        session_uri: "{{ result.session.uri }}"
